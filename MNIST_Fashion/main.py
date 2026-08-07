@@ -39,7 +39,7 @@ transform = transforms.Compose([
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = CheckImage()
-model.load_state_dict(torch.load('model_MnistFashion.pth', map_location=device))
+model.load_state_dict(torch.load('model_CheckImage_MnistFashion.pth', map_location=device, weights_only=True))
 model.to(device)
 model.eval()
 
@@ -48,9 +48,12 @@ class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 
 @app.post('/predict')
 async def check_image(file: UploadFile = File()):
     try:
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(400, detail='File is not an image')
+
         image_bytes = await file.read()
         if not image_bytes:
-            raise HTTPException(400, detail='Файл кошулган жок')
+            raise HTTPException(400, detail='Empty file')
 
         image = Image.open(io.BytesIO(image_bytes))
         image_tensor = transform(image).unsqueeze(0).to(device)
@@ -59,10 +62,12 @@ async def check_image(file: UploadFile = File()):
             y_prediction = model(image_tensor)
             prediction = y_prediction.argmax(dim=1).item()
         return {
-            'Класстын саны': prediction,
-            'Класстын аталышы': class_names[prediction]
+            'class_id': prediction,
+            'class_name': class_names[prediction]
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
@@ -73,7 +78,7 @@ if __name__ == '__main__':
 # st.title('Mnist Fashion Model')
 # st.text('Загрузите изображение одежды, и модель попробует её распознать.')
 #
-# mnist_image = st.file_uploader('Выберите изображение', type=['PNG', 'JPG', 'JPEG', 'SVG'])
+# mnist_image = st.file_uploader('Выберите изображение', type=['png', 'jpg', 'jpeg'])
 #
 # if not mnist_image:
 #     st.info('Загрузите изображение')

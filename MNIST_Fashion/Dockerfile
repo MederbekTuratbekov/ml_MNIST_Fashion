@@ -6,6 +6,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /fashion_app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
     libsndfile1 \
     gcc \
     g++ \
@@ -24,11 +25,8 @@ COPY ml_req_deploy.txt .
 RUN pip install --no-cache-dir -r ml_req_deploy.txt
 
 COPY main.py .
-COPY fashion_mnist.pth .
+COPY model_CheckImage_MnistFashion.pth .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
-
-# два воркера PyTorch могут исчерпать память. Рекомендую начать с одного:
-# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
